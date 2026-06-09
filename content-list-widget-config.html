@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configure Widget – Content List</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13px;
+      color: #333;
+      background: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .required { color: #d9534f; }
+
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.18);
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 80px);
+    }
+
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px 0; flex-shrink: 0;
+    }
+    .modal-header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+
+    .btn-close {
+      background: none; border: none; font-size: 22px; color: #888;
+      cursor: pointer; padding: 4px 8px;
+    }
+    .btn-close:hover { color: #333; }
+
+    .tabs {
+      display: flex; padding: 0 20px; border-bottom: 1px solid #ddd; flex-shrink: 0;
+    }
+    .tab {
+      background: none; border: none; padding: 12px 16px; font-size: 13px;
+      color: #555; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .tab:hover { color: #222; }
+    .tab.active { color: #222; font-weight: 600; border-bottom-color: #333; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group > label, .field-label {
+      display: block; font-weight: 600; margin-bottom: 8px; color: #333;
+    }
+    .field-hint { font-size: 12px; color: #777; font-weight: normal; margin-top: 4px; }
+
+    .form-row { display: flex; gap: 12px; align-items: flex-end; }
+    .form-row .form-group { flex: 1; margin-bottom: 0; }
+
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px;
+      font-size: 13px; background: #fff; color: #333;
+    }
+    input:focus, select:focus {
+      outline: none; border-color: #4a90d9;
+      box-shadow: 0 0 0 2px rgba(74,144,217,.15);
+    }
+
+    .input-with-help { display: flex; align-items: center; gap: 8px; }
+    .input-with-help input { flex: 1; }
+    .help-icon {
+      width: 20px; height: 20px; border-radius: 50%; border: 1px solid #aaa;
+      color: #888; font-size: 12px; display: flex; align-items: center;
+      justify-content: center; cursor: help; flex-shrink: 0;
+    }
+
+    .checkbox-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+    }
+    .checkbox-row label { font-weight: normal; margin: 0; cursor: pointer; }
+
+    .radio-inline {
+      display: flex; align-items: center; gap: 6px; margin-left: 12px;
+      font-weight: normal; white-space: nowrap;
+    }
+
+    .narrow-input { max-width: 80px; }
+    .ago-text { padding-bottom: 8px; color: #555; white-space: nowrap; }
+
+    /* Chip selectors */
+    .chip-group {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+
+    .chip {
+      padding: 6px 14px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      background: #fff;
+      font-size: 13px;
+      color: #444;
+      cursor: pointer;
+      transition: all .15s;
+      user-select: none;
+    }
+    .chip:hover { border-color: #4a90d9; color: #2a6496; }
+    .chip.selected {
+      background: #4a90d9;
+      border-color: #4a90d9;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    /* Filters panel – hidden until content types selected */
+    #filters-panel {
+      display: none;
+      margin-top: 4px;
+      animation: fadeIn .2s ease;
+    }
+    #filters-panel.visible { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .filters-panel-header {
+      padding: 12px 0 14px;
+      border-top: 1px solid #e5e5e5;
+      margin-top: 4px;
+    }
+    .filters-panel-header h2 {
+      margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #222;
+    }
+    .filters-panel-header p {
+      margin: 0; font-size: 12px; color: #777;
+    }
+
+    .filters-empty-spaces {
+      padding: 16px;
+      background: #fafafa;
+      border: 1px dashed #ccc;
+      border-radius: 4px;
+      color: #888;
+      font-size: 12px;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    /* Per content-type filter card */
+    .filter-card {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .filter-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      background: #f7f7f7;
+      border-bottom: 1px solid #e8e8e8;
+    }
+
+    .filter-card-header .type-name {
+      font-weight: 600; font-size: 13px; color: #222;
+    }
+
+    .filter-card-header .filter-kind {
+      font-size: 11px; color: #666; background: #eee;
+      padding: 2px 8px; border-radius: 10px;
+    }
+
+    .filter-card-body { padding: 12px 14px; }
+
+    /* Selected tags row */
+    .selected-row {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 10px; min-height: 24px;
+    }
+    .selected-row:empty { display: none; }
+
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #eef4fb; border: 1px solid #c5d9f0; border-radius: 4px;
+      padding: 3px 8px; font-size: 12px;
+    }
+    .tag .tag-meta { color: #6a8aaa; font-size: 11px; }
+    .tag .remove {
+      background: none; border: none; cursor: pointer; color: #666;
+      font-size: 14px; line-height: 1; padding: 0 2px;
+    }
+    .tag .remove:hover { color: #d9534f; }
+
+    /* Space blocks inside filters */
+    .space-block { margin-bottom: 14px; }
+    .space-block:last-child { margin-bottom: 0; }
+    .space-block-title {
+      font-size: 12px; font-weight: 600; color: #555;
+      margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #eee;
+    }
+
+    /* Wiki search */
+    .search-box {
+      display: flex; align-items: center; gap: 8px;
+      border: 1px solid #ccc; border-radius: 4px; padding: 0 10px;
+      margin-bottom: 6px; background: #fff;
+    }
+    .search-box:focus-within { border-color: #4a90d9; box-shadow: 0 0 0 2px rgba(74,144,217,.15); }
+    .search-box input {
+      border: none; box-shadow: none; padding: 8px 0; flex: 1;
+    }
+    .search-box input:focus { box-shadow: none; }
+
+    .option-list {
+      border: 1px solid #e0e0e0; border-radius: 4px;
+      max-height: 150px; overflow-y: auto; background: #fff;
+    }
+    .option-list .option {
+      padding: 8px 12px; cursor: pointer; font-size: 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .option-list .option:last-child { border-bottom: none; }
+    .option-list .option:hover { background: #f5f9fd; }
+    .option-list .option.selected { font-weight: 600; background: #eef4fb; }
+
+    /* Categories */
+    .cat-tabs {
+      display: flex; flex-wrap: wrap; gap: 0;
+      border: 1px solid #e0e0e0; border-radius: 4px 4px 0 0;
+      overflow: hidden; background: #f5f5f5;
+    }
+    .cat-tab {
+      flex: 1; min-width: 60px; padding: 8px 10px; border: none;
+      background: transparent; font-size: 12px; color: #555; cursor: pointer;
+      border-right: 1px solid #e0e0e0;
+    }
+    .cat-tab:last-child { border-right: none; }
+    .cat-tab.active { background: #fff; color: #222; font-weight: 600; }
+    .cat-panel {
+      border: 1px solid #e0e0e0; border-top: none;
+      border-radius: 0 0 4px 4px; background: #fff;
+    }
+    .cat-results { max-height: 140px; overflow-y: auto; }
+    .cat-group-label {
+      padding: 6px 12px; font-size: 11px; font-weight: 600;
+      color: #888; background: #fafafa; text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    .cat-item {
+      padding: 7px 12px; cursor: pointer; font-size: 12px;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .cat-item:hover { background: #f5f9fd; }
+    .cat-item.selected { font-weight: 600; background: #eef4fb; }
+
+    /* Folder tree */
+    .folder-row { display: flex; gap: 12px; }
+    .folder-selected {
+      flex: 1; min-height: 70px; padding: 8px;
+      border: 1px solid #e0e0e0; border-radius: 4px; background: #fafafa;
+      display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start;
+    }
+    .folder-selected .empty-hint { color: #aaa; font-size: 12px; }
+    .folder-tree {
+      flex: 1; border: 1px solid #e0e0e0; border-radius: 4px;
+      padding: 8px 10px; max-height: 200px; overflow-y: auto; font-size: 12px;
+    }
+    .tree-node { margin: 3px 0; }
+    .tree-node label {
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer; font-weight: normal;
+    }
+    .tree-node label.checked { font-weight: 600; }
+    .tree-children { margin-left: 18px; }
+    .subfolder-opt {
+      margin: 2px 0 4px 20px; font-size: 11px; color: #555;
+      display: none; align-items: center; gap: 5px;
+    }
+    .subfolder-opt.show { display: flex; }
+
+    /* Forum list */
+    .forum-checklist {
+      padding: 4px 0;
+    }
+    .forum-check.match-hidden { display: none; }
+    .forum-check {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0; cursor: pointer;
+    }
+    .forum-check label { font-weight: normal; cursor: pointer; margin: 0; }
+    .forum-check.checked label { font-weight: 600; }
+
+    .section-divider { border: none; border-top: 1px solid #e5e5e5; margin: 20px 0; }
+
+    .modal-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-top: 1px solid #ddd;
+      flex-shrink: 0; background: #fafafa;
+    }
+    .footer-actions { display: flex; gap: 8px; }
+
+    .btn {
+      padding: 8px 20px; border-radius: 4px; font-size: 13px;
+      cursor: pointer; border: 1px solid transparent;
+    }
+    .btn-cancel { background: #fff; border-color: #ccc; }
+    .btn-cancel:hover { background: #f5f5f5; }
+    .btn-save { background: #5cb85c; border-color: #4cae4c; color: #fff; font-weight: 600; }
+    .btn-save:hover { background: #4cae4c; }
+
+    .placeholder-tab { padding: 40px; text-align: center; color: #999; }
+
+    .config-output { margin-top: 24px; max-width: 720px; width: 100%; }
+    .config-output h2 { font-size: 14px; margin: 0 0 8px; color: #555; }
+    .config-output pre {
+      background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radius: 4px;
+      overflow-x: auto; font-size: 12px; line-height: 1.5;
+    }
+
+    .page-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; }
+    .hidden { display: none !important; }
+
+    /* Space search picker */
+    .space-picker-toolbar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .space-search-wrap {
+      position: relative; flex: 1; min-width: 200px;
+    }
+    .space-search-wrap .search-box { margin-bottom: 0; }
+    .space-search-results {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
+      margin-top: 4px; background: #fff; border: 1px solid #ccc;
+      border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,.12);
+      max-height: 200px; overflow-y: auto;
+    }
+    .space-search-results .result-item {
+      padding: 8px 12px; font-size: 12px; cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .space-search-results .result-item:last-child { border-bottom: none; }
+    .space-search-results .result-item:hover,
+    .space-search-results .result-item.active { background: #f5f9fd; }
+    .space-search-results .no-results {
+      padding: 12px; text-align: center; color: #aaa; font-size: 12px;
+    }
+    .selection-badge {
+      font-size: 11px; font-weight: 600; color: #2a6496;
+      background: #eef4fb; border: 1px solid #c5d9f0;
+      padding: 3px 10px; border-radius: 12px; white-space: nowrap;
+    }
+    .btn-text {
+      background: none; border: none; color: #4a90d9; font-size: 12px;
+      cursor: pointer; padding: 4px 6px; white-space: nowrap;
+    }
+    .btn-text:hover { text-decoration: underline; }
+    #space-selected {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      min-height: 32px; padding: 6px 8px;
+      border: 1px solid #e8e8e8; border-radius: 4px; background: #fafafa;
+    }
+    #space-selected:empty {
+      display: block;
+    }
+    #space-selected:empty::before {
+      content: 'No spaces selected';
+      color: #aaa; font-size: 12px;
+    }
+
+    /* Filter card selection count */
+    .filter-card-header .selection-count {
+      font-size: 11px; font-weight: 600; color: #2a6496;
+      background: #eef4fb; padding: 2px 8px; border-radius: 10px; margin-left: 8px;
+    }
+
+    /* Accordion space blocks */
+    .accordion-block {
+      border: 1px solid #e5e5e5; border-radius: 4px;
+      margin-bottom: 8px; overflow: hidden; background: #fff;
+    }
+    .accordion-block:last-child { margin-bottom: 0; }
+    .accordion-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; background: #f7f7f7; cursor: pointer;
+      user-select: none; border: none; width: 100%; text-align: left;
+      font-size: 12px; color: #333;
+    }
+    .accordion-header:hover { background: #f0f4f8; }
+    .accordion-header .chevron {
+      font-size: 10px; color: #888; transition: transform .15s;
+      flex-shrink: 0; width: 14px;
+    }
+    .accordion-header.expanded .chevron { transform: rotate(90deg); }
+    .accordion-header .space-name { font-weight: 600; flex: 1; min-width: 0; }
+    .accordion-header .space-meta {
+      font-size: 11px; color: #888; font-weight: normal; white-space: nowrap;
+    }
+    .accordion-body { padding: 10px 12px; border-top: 1px solid #eee; }
+    .accordion-body.collapsed { display: none; }
+
+    /* File picker layout */
+    .file-picker { display: flex; flex-direction: column; gap: 12px; }
+    .file-picker-section-label {
+      font-size: 11px; font-weight: 600; color: #888;
+      text-transform: uppercase; letter-spacing: .03em; margin-bottom: 4px;
+    }
+    .selected-by-space {
+      border: 1px solid #e0e0e0; border-radius: 4px; background: #fafafa;
+      max-height: 140px; overflow-y: auto;
+    }
+    .selected-space-group { border-bottom: 1px solid #eee; }
+    .selected-space-group:last-child { border-bottom: none; }
+    .selected-space-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 10px; background: #f5f5f5; font-size: 11px; font-weight: 600; color: #555;
+    }
+    .selected-space-header .clear-space {
+      background: none; border: none; color: #888; font-size: 11px;
+      cursor: pointer; padding: 0 4px;
+    }
+    .selected-space-header .clear-space:hover { color: #d9534f; }
+    .selected-space-tags {
+      display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 10px;
+    }
+    .selected-empty {
+      padding: 14px; text-align: center; color: #aaa; font-size: 12px;
+    }
+
+    .folder-tree-panel {
+      border: 1px solid #e0e0e0; border-radius: 4px;
+      max-height: 280px; overflow-y: auto;
+    }
+    .folder-tree-panel .panel-search { margin: 8px; }
+    .folder-tree-panel .search-box { margin: 0 0 8px; }
+    .accordion-block.match-hidden { display: none; }
+
+    /* Tree expand/collapse */
+    .tree-node-row {
+      display: flex; align-items: center; gap: 2px;
+    }
+    .tree-toggle {
+      background: none; border: none; cursor: pointer;
+      width: 18px; height: 18px; padding: 0; font-size: 10px;
+      color: #888; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    }
+    .tree-toggle:hover { color: #333; }
+    .tree-toggle.placeholder { visibility: hidden; }
+    .tree-node label { flex: 1; min-width: 0; }
+    .tree-node label span.folder-name {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .tree-node.match-hidden { display: none; }
+    .tree-node.has-match .tree-children { display: block; }
+    .tree-no-results {
+      padding: 12px; text-align: center; color: #aaa; font-size: 12px;
+    }
+
+    /* Collapsible selected tags summary */
+    .selected-summary-toggle {
+      display: flex; align-items: center; gap: 6px;
+      background: #f7f7f7; border: 1px solid #e5e5e5; border-radius: 4px;
+      padding: 6px 10px; cursor: pointer; font-size: 12px; color: #555;
+      margin-bottom: 8px; width: 100%; text-align: left;
+    }
+    .selected-summary-toggle .chevron { font-size: 10px; color: #888; }
+    .selected-row.collapsed { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <div class="modal" role="dialog" aria-labelledby="modal-title">
+    <div class="modal-header">
+      <h1 id="modal-title">Configure Widget</h1>
+      <button class="btn-close" type="button" aria-label="Close" onclick="alert('Close clicked')">&times;</button>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="properties">Properties</button>
+      <button class="tab" data-tab="template">Template</button>
+      <button class="tab" data-tab="advanced">Advanced</button>
+      <button class="tab" data-tab="roles">Roles</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="tab-panel active" id="panel-properties">
+        <form onsubmit="return false;">
+
+          <div class="form-group">
+            <label for="title">Title <span class="required">*</span></label>
+            <div class="input-with-help">
+              <input type="text" id="title" value="Content List" required />
+              <span class="help-icon" title="Display title for this widget">?</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="widget-subtype">Widget Sub Type</label>
+            <select id="widget-subtype"><option selected>Content List</option></select>
+          </div>
+
+          <!-- Step 1: Content types -->
+          <div class="form-group">
+            <label class="field-label">Content types</label>
+            <div class="chip-group" id="content-type-chips"></div>
+            <p class="field-hint">Select one or more content types to enable filtering options below.</p>
+          </div>
+
+          <!-- Step 2: Spaces -->
+          <div class="form-group">
+            <label class="field-label">Spaces</label>
+            <div class="space-picker-toolbar">
+              <div class="space-search-wrap">
+                <div class="search-box">
+                  <input type="text" id="space-search" placeholder="Search spaces..." autocomplete="off" />
+                  <span style="color:#999">&#128269;</span>
+                </div>
+                <div id="space-search-results" class="space-search-results hidden"></div>
+              </div>
+              <span class="selection-badge" id="space-count">0 selected</span>
+              <button type="button" class="btn-text" id="space-select-all">Select all</button>
+              <button type="button" class="btn-text" id="space-clear-all">Clear</button>
+            </div>
+            <div id="space-selected"></div>
+            <p class="field-hint">Type to search, then click a space to add it.</p>
+          </div>
+
+          <div class="checkbox-row">
+            <input type="checkbox" id="auto-space" />
+            <label for="auto-space">Set space automatically from page</label>
+          </div>
+
+          <!-- Step 3: Second-level filters (only when content types selected) -->
+          <div id="filters-panel">
+            <div class="filters-panel-header">
+              <h2>Second-level filters</h2>
+              <p>Configure filters for each selected content type. Multiple selections are supported per type and across spaces.</p>
+            </div>
+            <div id="filters-no-spaces" class="filters-empty-spaces hidden">
+              Select at least one space above to choose filters.
+            </div>
+            <div id="second-level-filters"></div>
+          </div>
+
+          <hr class="section-divider" />
+
+          <div id="common-filters">
+            <div class="form-group">
+              <label>Authors</label>
+              <div class="chip-group" id="author-chips" style="gap:6px;"></div>
+              <p class="field-hint">Click to add authors (optional).</p>
+            </div>
+
+            <div class="checkbox-row">
+              <input type="checkbox" id="logged-in-user" />
+              <label for="logged-in-user">Logged in user</label>
+            </div>
+
+            <div class="form-group">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <label style="margin:0;">Tags</label>
+                <label class="radio-inline">
+                  <input type="radio" name="tag-match" value="any" checked /> Content with any
+                </label>
+              </div>
+              <div class="chip-group" id="tag-chips" style="gap:6px;margin-top:8px;"></div>
+            </div>
+
+            <div class="form-row" style="margin-bottom:16px;">
+              <div class="form-group">
+                <label for="featured">Featured</label>
+                <select id="featured">
+                  <option selected>All</option>
+                  <option>Featured only</option>
+                  <option>Not featured</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="required-reading">Required reading</label>
+                <select id="required-reading">
+                  <option selected>All</option>
+                  <option>Required only</option>
+                  <option>Not required</option>
+                </select>
+              </div>
+            </div>
+
+            <hr class="section-divider" />
+          </div>
+
+          <div class="form-group">
+            <label for="total-items">Total items <span class="required">*</span></label>
+            <input type="number" id="total-items" class="narrow-input" value="4" min="1" />
+          </div>
+
+          <div class="form-group">
+            <label>Sort by <span class="required">*</span></label>
+            <div class="form-row">
+              <select id="sort-field">
+                <option selected>Publish date</option>
+                <option>Title</option>
+                <option>Date created</option>
+                <option>Date updated</option>
+                <option>Views</option>
+              </select>
+              <select id="sort-order">
+                <option selected>Desc</option>
+                <option>Asc</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Content published since</label>
+            <div class="form-row">
+              <select id="since-number">
+                <option value="">Select number</option>
+                <option>1</option><option>7</option><option>14</option>
+                <option>30</option><option>90</option><option>365</option>
+              </select>
+              <select id="since-period">
+                <option value="">Select time period</option>
+                <option>days</option><option>weeks</option>
+                <option>months</option><option>years</option>
+              </select>
+              <span class="ago-text">ago</span>
+            </div>
+          </div>
+
+          <div class="checkbox-row">
+            <input type="checkbox" id="custom-date-range" />
+            <label for="custom-date-range">Custom Date Range</label>
+          </div>
+
+        </form>
+      </div>
+
+      <div class="tab-panel" id="panel-template">
+        <div class="placeholder-tab">Template configuration would appear here.</div>
+      </div>
+      <div class="tab-panel" id="panel-advanced">
+        <div class="placeholder-tab">Advanced settings would appear here.</div>
+      </div>
+      <div class="tab-panel" id="panel-roles">
+        <div class="placeholder-tab">Role permissions would appear here.</div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <div class="checkbox-row" style="margin:0;">
+        <input type="checkbox" id="save-elsewhere" />
+        <label for="save-elsewhere">Save widget for use elsewhere</label>
+      </div>
+      <div class="footer-actions">
+        <button class="btn btn-cancel" type="button" onclick="resetForm()">Cancel</button>
+        <button class="btn btn-save" type="button" onclick="saveWidget()">Save Widget</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="config-output" id="config-output" style="display:none;">
+    <h2>Saved Configuration (JSON)</h2>
+    <pre id="config-json"></pre>
+  </div>
+</div>
+
+<script>
+  const CONTENT_TYPES = ['Wiki','Article','Blog','CMS','Event','File','Forum','Idea','Video'];
+  const SPACES = [
+    'Top level community','Human Resources','Employee Onboarding','Marketing','Sales',
+    'Engineering','Product','Customer Success','Legal & Compliance','Finance',
+    'IT Support','Research & Development','Operations','Executive Office','Regional APAC'
+  ];
+  const AUTHORS = ['John Smith','Jane Doe','Alex Johnson','Sarah Williams'];
+  const TAGS = ['onboarding','news','hr','policy','announcement'];
+
+  const FILTER_MODEL = {
+    Wiki:    { kind: 'Parent-page search', filter: 'parent' },
+    Article: { kind: 'Categories',       filter: 'category', tab: 'articles' },
+    Blog:    { kind: 'Categories',       filter: 'category', tab: 'blogs' },
+    CMS:     { kind: 'Categories',       filter: 'category', tab: 'cms' },
+    Event:   { kind: 'Categories',       filter: 'category', tab: 'events' },
+    Idea:    { kind: 'Categories',       filter: 'category', tab: 'ideas' },
+    Video:   { kind: 'Categories',       filter: 'category', tab: 'videos' },
+    File:    { kind: 'Folder tree',      filter: 'folder' },
+    Forum:   { kind: 'Checkbox list',    filter: 'forum' }
+  };
+
+  const CATEGORY_TYPES = ['Article','Blog','CMS','Event','Idea','Video'];
+  const TAB_LABELS = { articles:'Articles', blogs:'Blogs', cms:'CMS', events:'Events', ideas:'Ideas', videos:'Videos' };
+
+  const CATEGORY_DATA = {
+    articles: {
+      'Top level community': { News: ['Company Announcements','Press Releases','HR Updates','Executive'] },
+      'Employee Onboarding': { Onboarding: ['Welcome Articles','First Week','Training Guides'] }
+    },
+    blogs: {
+      'Top level community': { News: ['Company Blog','Industry News','Product Updates'] },
+      'Marketing': { Campaigns: ['Product Launch','Brand Stories'] }
+    },
+    cms: {
+      'Top level community': { Pages: ['Homepage','About Us','Contact'] },
+      'Human Resources': { Policy: ['HR Policy','Benefits Overview'] }
+    },
+    events: {
+      'Top level community': { Company: ['All-Hands','Town Hall','Training'] },
+      'Employee Onboarding': { Onboarding: ['Orientation Day','Mentor Meetup'] }
+    },
+    ideas: {
+      'Top level community': { Innovation: ['Product Ideas','Process Improvement'] },
+      'Sales': { Feedback: ['Customer Suggestions','Sales Ideas'] }
+    },
+    videos: {
+      'Top level community': { Training: ['Onboarding Videos','Safety Training'] },
+      'Marketing': { Marketing: ['Product Demos','Webinars'] }
+    }
+  };
+
+  function makeFolderChildren(prefix, names, depth) {
+    return names.map((name, i) => {
+      const id = `${prefix}-${i}`;
+      const node = { id, label: name };
+      if (depth > 0 && i % 3 === 0) {
+        node.children = makeFolderChildren(`${id}-sub`, [
+          `${name} – Q1`, `${name} – Q2`, `${name} – Archive`
+        ], depth - 1);
+      }
+      return node;
+    });
+  }
+
+  function buildFolderTreeForSpace(spaceKey, folders) {
+    return [{ id: `${spaceKey}-root`, label: 'Root folder', children: makeFolderChildren(spaceKey, folders, 2) }];
+  }
+
+  const FOLDER_TREE = {
+    'Top level community': buildFolderTreeForSpace('tlc', [
+      'Human Resources','COVID-19','Homepage Design','Company Policies','Brand Guidelines',
+      'Training Materials','Event Photos','Press Releases','Internal Memos','Shared Templates'
+    ]),
+    'Employee Onboarding': buildFolderTreeForSpace('eo', [
+      'Activity Stream Files','Projects','Welcome Kit','First Week Guides','Buddy Resources',
+      'Orientation Videos','Checklists','HR Forms','IT Setup','Manager Toolkit'
+    ]),
+    'Human Resources': buildFolderTreeForSpace('hr', [
+      'Policies','Forms','Benefits','Payroll','Recruitment','Performance Reviews',
+      'Employee Records','Compliance','Handbooks','Wellness Programs'
+    ]),
+    'Marketing': buildFolderTreeForSpace('mkt', [
+      'Brand Assets','Campaign Files','Social Media','Webinars','Product Demos',
+      'Email Templates','Analytics Reports','Partner Collateral','Event Booths','Ad Creatives'
+    ]),
+    'Sales': buildFolderTreeForSpace('sales', [
+      'Pitch Decks','Proposals','Case Studies','Pricing Sheets','Competitor Analysis',
+      'CRM Exports','Territory Plans','Forecast Reports','Contract Templates','Demo Scripts'
+    ]),
+    'Engineering': buildFolderTreeForSpace('eng', [
+      'Architecture Docs','API Specs','Release Notes','Sprint Artifacts','Code Reviews',
+      'Infrastructure','Security Audits','Design Docs','Runbooks','Postmortems'
+    ]),
+    'Product': buildFolderTreeForSpace('prod', [
+      'Roadmaps','PRDs','User Research','Wireframes','Release Plans',
+      'Feature Specs','Backlog Exports','Competitive Intel','Beta Feedback','Launch Kits'
+    ]),
+    'Customer Success': buildFolderTreeForSpace('cs', [
+      'Onboarding Playbooks','Support Macros','Health Scores','QBR Decks','Renewal Templates',
+      'Training Webinars','Escalation Logs','NPS Reports','Success Plans','Churn Analysis'
+    ]),
+    'Legal & Compliance': buildFolderTreeForSpace('legal', [
+      'Contracts','NDAs','Privacy Policies','Regulatory Filings','Trademark Assets',
+      'Vendor Agreements','Audit Reports','IP Documentation','Compliance Training','Risk Assessments'
+    ]),
+    'Finance': buildFolderTreeForSpace('fin', [
+      'Budgets','Invoices','Expense Reports','Forecast Models','Board Decks',
+      'Tax Documents','Audit Trails','Payroll Exports','Vendor Payments','CapEx Plans'
+    ]),
+    'IT Support': buildFolderTreeForSpace('it', [
+      'KB Articles','Ticket Templates','Asset Inventory','Network Diagrams','Patch Schedules',
+      'Access Requests','Incident Reports','Software Licenses','Backup Logs','Security Policies'
+    ]),
+    'Research & Development': buildFolderTreeForSpace('rd', [
+      'Lab Results','Patent Drafts','Prototype Specs','Experiment Data','Literature Reviews',
+      'Grant Applications','Equipment Manuals','Safety Protocols','Collaboration Notes','Publication Drafts'
+    ]),
+    'Operations': buildFolderTreeForSpace('ops', [
+      'SOPs','Vendor Lists','Facility Plans','Shipping Logs','Inventory Reports',
+      'Process Maps','KPI Dashboards','Meeting Minutes','Budget Trackers','Audit Checklists'
+    ]),
+    'Executive Office': buildFolderTreeForSpace('exec', [
+      'Board Materials','Strategy Decks','Investor Updates','All-Hands Slides','Org Charts',
+      'M&A Documents','Press Statements','Leadership Bios','Annual Reports','Confidential Memos'
+    ]),
+    'Regional APAC': buildFolderTreeForSpace('apac', [
+      'Localization Assets','Regional Policies','Market Research','Partner Agreements','Event Materials',
+      'Translation Files','Compliance Docs','Sales Playbooks','HR Local Guides','Training Subtitles'
+    ])
+  };
+
+  const FORUM_DATA = Object.fromEntries(SPACES.map(s => [s, [
+    'General Discussion','Announcements','Help & Support','Feature Requests','Off-topic'
+  ]]));
+
+  const PARENT_CONTENT = Object.fromEntries(SPACES.map((s, i) => [s,
+    Array.from({ length: 12 }, (_, j) => `${s} – Page ${j + 1 + i * 3}`)
+  ]));
+
+  const state = {
+    contentTypes: [],
+    spaces: [],
+    wikiParents: [],
+    categories: [],
+    files: [],
+    forums: [],
+    authors: [],
+    tags: [],
+    activeCategoryTab: 'articles',
+    categorySearch: '',
+    wikiSearch: {},
+    spaceSearch: '',
+    spaceSearchOpen: false,
+    fileSearch: {},
+    fileGlobalSearch: '',
+    forumSearch: {},
+    forumGlobalSearch: '',
+    expandedFileSpaces: {},
+    expandedTreeNodes: {},
+    expandedWikiSpaces: {},
+    expandedForumSpaces: {},
+    showAllSelectedTags: {}
+  };
+
+  const ACCORDION_COLLAPSE_THRESHOLD = 3;
+
+  function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  }
+
+  function initExpandedSpaces(spaceList, expandedMap) {
+    spaceList.forEach((s, i) => {
+      if (expandedMap[s] === undefined) expandedMap[s] = i === 0;
+    });
+    Object.keys(expandedMap).forEach(s => {
+      if (!spaceList.includes(s)) delete expandedMap[s];
+    });
+  }
+
+  function updateSpaceCount() {
+    const el = document.getElementById('space-count');
+    if (el) el.textContent = `${state.spaces.length} of ${SPACES.length} selected`;
+  }
+
+  // ─── Chip builder ───────────────────────────────────────────────────────────
+
+  function buildChips(containerId, options, selected, onChange, filterFn) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = '';
+    const visible = filterFn ? options.filter(filterFn) : options;
+    if (!visible.length && filterFn) {
+      el.innerHTML = '<span style="color:#aaa;font-size:12px;padding:6px;">No matches</span>';
+      return;
+    }
+    visible.forEach(opt => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (selected.includes(opt) ? ' selected' : '');
+      chip.textContent = opt;
+      chip.title = opt;
+      chip.addEventListener('click', () => {
+        const idx = selected.indexOf(opt);
+        if (idx > -1) selected.splice(idx, 1);
+        else selected.push(opt);
+        onChange();
+      });
+      el.appendChild(chip);
+    });
+  }
+
+  function renderChips() {
+    buildChips('content-type-chips', CONTENT_TYPES, state.contentTypes, onContentTypesChange);
+    buildChips('author-chips', AUTHORS, state.authors, () => renderChips());
+    buildChips('tag-chips', TAGS, state.tags, () => renderChips());
+  }
+
+  function getSpaceSearchMatches() {
+    const q = state.spaceSearch.toLowerCase().trim();
+    return SPACES.filter(s => {
+      if (state.spaces.includes(s)) return false;
+      if (!q) return true;
+      return s.toLowerCase().includes(q);
+    });
+  }
+
+  function renderSpaceSearchResults() {
+    const dropdown = document.getElementById('space-search-results');
+    const matches = getSpaceSearchMatches();
+    dropdown.innerHTML = '';
+
+    if (!state.spaceSearchOpen) {
+      dropdown.classList.add('hidden');
+      return;
+    }
+
+    dropdown.classList.remove('hidden');
+    if (!matches.length) {
+      dropdown.innerHTML = '<div class="no-results">No spaces found</div>';
+      return;
+    }
+
+    matches.forEach(space => {
+      const item = document.createElement('div');
+      item.className = 'result-item';
+      item.textContent = space;
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        if (!state.spaces.includes(space)) state.spaces.push(space);
+        state.spaceSearch = '';
+        state.spaceSearchOpen = false;
+        document.getElementById('space-search').value = '';
+        onSpacesChange();
+      });
+      dropdown.appendChild(item);
+    });
+  }
+
+  function renderSpacePicker() {
+    updateSpaceCount();
+    const selectedEl = document.getElementById('space-selected');
+    selectedEl.innerHTML = '';
+    state.spaces.forEach(space => {
+      selectedEl.appendChild(makeTag(space, '', () => {
+        state.spaces = state.spaces.filter(s => s !== space);
+        onSpacesChange();
+      }));
+    });
+    renderSpaceSearchResults();
+  }
+
+  // ─── Prune filters when type removed ────────────────────────────────────────
+
+  function pruneFilters() {
+    state.wikiParents = state.wikiParents;
+    if (!state.contentTypes.includes('Wiki')) state.wikiParents = [];
+    state.categories = state.categories.filter(c => state.contentTypes.includes(c.contentType));
+    if (!state.contentTypes.includes('File')) state.files = [];
+    if (!state.contentTypes.includes('Forum')) state.forums = [];
+  }
+
+  function onContentTypesChange() {
+    pruneFilters();
+    renderChips();
+    updateFiltersPanel();
+  }
+
+  function onSpacesChange() {
+    initExpandedSpaces(state.spaces, state.expandedFileSpaces);
+    initExpandedSpaces(state.spaces, state.expandedWikiSpaces);
+    initExpandedSpaces(state.spaces, state.expandedForumSpaces);
+    renderSpacePicker();
+    updateFiltersPanel();
+  }
+
+  // ─── Show/hide filters panel ────────────────────────────────────────────────
+
+  function updateFiltersPanel() {
+    const panel = document.getElementById('filters-panel');
+    const hasTypes = state.contentTypes.length > 0;
+    const hasSpaces = state.spaces.length > 0;
+
+    panel.classList.toggle('visible', hasTypes);
+
+    document.getElementById('filters-no-spaces').classList.toggle('hidden', !hasTypes || hasSpaces);
+    document.getElementById('second-level-filters').classList.toggle('hidden', !hasSpaces);
+
+    if (hasTypes && hasSpaces) renderFilterCards();
+  }
+
+  // ─── Keys ───────────────────────────────────────────────────────────────────
+
+  const wikiKey = (s,p) => `${s}|${p}`;
+  const catKey  = (t,s,c) => `${t}|${s}|${c}`;
+  const fileKey = (id,s) => `${id}|${s}`;
+  const forumKey = (l,s) => `${l}|${s}`;
+
+  // ─── Render filter cards (one per selected content type group) ────────────────
+
+  function renderFilterCards() {
+    const container = document.getElementById('second-level-filters');
+    container.innerHTML = '';
+
+    // Wiki
+    if (state.contentTypes.includes('Wiki')) {
+      container.appendChild(buildWikiCard());
+    }
+
+    // Category types – one combined card if any selected
+    const catTypes = state.contentTypes.filter(t => CATEGORY_TYPES.includes(t));
+    if (catTypes.length) {
+      container.appendChild(buildCategoryCard(catTypes));
+    }
+
+    // File
+    if (state.contentTypes.includes('File')) {
+      container.appendChild(buildFileCard());
+    }
+
+    // Forum
+    if (state.contentTypes.includes('Forum')) {
+      container.appendChild(buildForumCard());
+    }
+  }
+
+  function cardHeader(typeName, kind, count) {
+    const h = document.createElement('div');
+    h.className = 'filter-card-header';
+    const countHtml = count > 0 ? `<span class="selection-count">${count} selected</span>` : '';
+    h.innerHTML = `<span class="type-name">${typeName}${countHtml}</span><span class="filter-kind">${kind}</span>`;
+    return h;
+  }
+
+  function buildAccordionHeader(space, expanded, selectedCount, onToggle) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'accordion-header' + (expanded ? ' expanded' : '');
+    const meta = selectedCount > 0 ? `${selectedCount} selected` : 'Browse';
+    btn.innerHTML = `<span class="chevron">&#9654;</span><span class="space-name">${space}</span><span class="space-meta">${meta}</span>`;
+    btn.addEventListener('click', onToggle);
+    return btn;
+  }
+
+  function buildCollapsibleSelectedRow(key, items, renderTag) {
+    const wrap = document.createElement('div');
+    const many = items.length > ACCORDION_COLLAPSE_THRESHOLD;
+    const showAll = state.showAllSelectedTags[key];
+
+    if (many && !showAll) {
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'selected-summary-toggle';
+      toggle.innerHTML = `<span class="chevron">&#9654;</span> Show ${items.length} selected items`;
+      toggle.addEventListener('click', () => {
+        state.showAllSelectedTags[key] = true;
+        updateFiltersPanel();
+      });
+      wrap.appendChild(toggle);
+    }
+
+    const row = document.createElement('div');
+    row.className = 'selected-row' + (many && !showAll ? ' collapsed' : '');
+    items.forEach(item => row.appendChild(renderTag(item)));
+    wrap.appendChild(row);
+
+    if (many && showAll) {
+      const hide = document.createElement('button');
+      hide.type = 'button';
+      hide.className = 'btn-text';
+      hide.style.marginTop = '4px';
+      hide.textContent = 'Collapse selection list';
+      hide.addEventListener('click', () => {
+        state.showAllSelectedTags[key] = false;
+        updateFiltersPanel();
+      });
+      wrap.appendChild(hide);
+    }
+
+    return wrap;
+  }
+
+  function makeTag(text, meta, onRemove) {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.innerHTML = `${text}${meta ? `<span class="tag-meta">${meta}</span>` : ''}
+      <button type="button" class="remove">&times;</button>`;
+    tag.querySelector('.remove').addEventListener('click', onRemove);
+    return tag;
+  }
+
+  // Wiki card
+  function buildWikiCard() {
+    const card = document.createElement('div');
+    card.className = 'filter-card';
+    card.appendChild(cardHeader('Wiki', FILTER_MODEL.Wiki.kind, state.wikiParents.length));
+
+    const body = document.createElement('div');
+    body.className = 'filter-card-body';
+
+    if (state.wikiParents.length) {
+      body.appendChild(buildCollapsibleSelectedRow('wiki', state.wikiParents, w =>
+        makeTag(w.page, `(${w.space})`, () => {
+          state.wikiParents = state.wikiParents.filter(x => wikiKey(x.space,x.page) !== wikiKey(w.space,w.page));
+          updateFiltersPanel();
+        })
+      ));
+    }
+
+    initExpandedSpaces(state.spaces, state.expandedWikiSpaces);
+
+    state.spaces.forEach(space => {
+      if (!PARENT_CONTENT[space]) return;
+      const expanded = state.expandedWikiSpaces[space];
+      const selCount = state.wikiParents.filter(w => w.space === space).length;
+
+      const block = document.createElement('div');
+      block.className = 'accordion-block';
+
+      block.appendChild(buildAccordionHeader(space, expanded, selCount, () => {
+        state.expandedWikiSpaces[space] = !expanded;
+        updateFiltersPanel();
+      }));
+
+      const accBody = document.createElement('div');
+      accBody.className = 'accordion-body' + (expanded ? '' : ' collapsed');
+
+      const search = document.createElement('div');
+      search.className = 'search-box';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Search parent pages...';
+      input.value = state.wikiSearch[space] || '';
+      search.appendChild(input);
+      search.insertAdjacentHTML('beforeend', '<span style="color:#999">&#128269;</span>');
+
+      const list = document.createElement('div');
+      list.className = 'option-list';
+
+      function renderList() {
+        state.wikiSearch[space] = input.value;
+        const f = input.value.toLowerCase();
+        const pages = PARENT_CONTENT[space].filter(p => p.toLowerCase().includes(f));
+        list.innerHTML = '';
+        if (!pages.length) {
+          list.innerHTML = '<div class="tree-no-results">No pages match your search</div>';
+          return;
+        }
+        pages.forEach(page => {
+          const opt = document.createElement('div');
+          const sel = state.wikiParents.some(w => w.space === space && w.page === page);
+          opt.className = 'option' + (sel ? ' selected' : '');
+          opt.textContent = page;
+          opt.addEventListener('click', () => {
+            const k = wikiKey(space, page);
+            if (!sel) state.wikiParents.push({ space, page });
+            else state.wikiParents = state.wikiParents.filter(w => wikiKey(w.space,w.page) !== k);
+            updateFiltersPanel();
+          });
+          list.appendChild(opt);
+        });
+      }
+
+      input.addEventListener('input', debounce(renderList, 200));
+      renderList();
+
+      accBody.appendChild(search);
+      accBody.appendChild(list);
+      block.appendChild(accBody);
+      body.appendChild(block);
+    });
+
+    card.appendChild(body);
+    return card;
+  }
+
+  // Category card
+  function buildCategoryCard(catTypes) {
+    const card = document.createElement('div');
+    card.className = 'filter-card';
+    card.appendChild(cardHeader(catTypes.join(', '), 'Categories', state.categories.length));
+
+    const body = document.createElement('div');
+    body.className = 'filter-card-body';
+
+    if (state.categories.length) {
+      body.appendChild(buildCollapsibleSelectedRow('categories', state.categories, c =>
+        makeTag(c.category, `(${c.contentType} · ${c.space})`, () => {
+          state.categories = state.categories.filter(x => catKey(x.contentType,x.space,x.category) !== catKey(c.contentType,c.space,c.category));
+          updateFiltersPanel();
+        })
+      ));
+    }
+
+    const tabs = getCategoryTabs();
+    if (!tabs.includes(state.activeCategoryTab)) state.activeCategoryTab = tabs[0];
+
+    const tabsEl = document.createElement('div');
+    tabsEl.className = 'cat-tabs';
+    tabs.forEach(tab => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cat-tab' + (tab === state.activeCategoryTab ? ' active' : '');
+      btn.textContent = TAB_LABELS[tab];
+      btn.addEventListener('click', () => { state.activeCategoryTab = tab; updateFiltersPanel(); });
+      tabsEl.appendChild(btn);
+    });
+    body.appendChild(tabsEl);
+
+    const panel = document.createElement('div');
+    panel.className = 'cat-panel';
+
+    const searchBox = document.createElement('div');
+    searchBox.className = 'search-box';
+    searchBox.style.margin = '8px';
+    const searchInput = document.createElement('input');
+    searchInput.placeholder = 'Search categories...';
+    searchInput.value = state.categorySearch;
+    searchBox.appendChild(searchInput);
+    panel.appendChild(searchBox);
+
+    const results = document.createElement('div');
+    results.className = 'cat-results';
+
+    const contentType = Object.entries(FILTER_MODEL).find(([,v]) => v.tab === state.activeCategoryTab)?.[0];
+    const filter = state.categorySearch.toLowerCase();
+    const spaceData = CATEGORY_DATA[state.activeCategoryTab] || {};
+
+    const spacesWithData = state.spaces.filter(space => spaceData[space]);
+    if (!spacesWithData.length) {
+      results.innerHTML = '<div class="tree-no-results">No categories for selected spaces in this tab</div>';
+    } else {
+      spacesWithData.forEach(space => {
+        const groups = spaceData[space];
+        const spaceLabel = document.createElement('div');
+        spaceLabel.className = 'cat-group-label';
+        const selInSpace = state.categories.filter(c => c.contentType === contentType && c.space === space).length;
+        spaceLabel.textContent = selInSpace ? `${space} · ${selInSpace} selected` : space;
+        results.appendChild(spaceLabel);
+
+        let hasItems = false;
+        Object.entries(groups).forEach(([group, items]) => {
+          items.filter(i => i.toLowerCase().includes(filter) || group.toLowerCase().includes(filter))
+            .forEach(item => {
+              hasItems = true;
+              const div = document.createElement('div');
+              const sel = state.categories.some(c => c.contentType === contentType && c.space === space && c.category === item);
+              div.className = 'cat-item' + (sel ? ' selected' : '');
+              div.textContent = `${item} (${group})`;
+              div.addEventListener('click', () => {
+                const k = catKey(contentType, space, item);
+                if (!sel) state.categories.push({ contentType, space, category: item, group });
+                else state.categories = state.categories.filter(c => catKey(c.contentType,c.space,c.category) !== k);
+                updateFiltersPanel();
+              });
+              results.appendChild(div);
+            });
+        });
+        if (!hasItems && filter) {
+          const empty = document.createElement('div');
+          empty.className = 'tree-no-results';
+          empty.style.padding = '8px 12px';
+          empty.textContent = 'No matches in this space';
+          results.appendChild(empty);
+        }
+      });
+    }
+
+    searchInput.addEventListener('input', debounce(e => {
+      state.categorySearch = e.target.value;
+      updateFiltersPanel();
+    }, 200));
+
+    panel.appendChild(results);
+    body.appendChild(panel);
+    card.appendChild(body);
+    return card;
+  }
+
+  function getCategoryTabs() {
+    return state.contentTypes.filter(t => CATEGORY_TYPES.includes(t)).map(t => FILTER_MODEL[t].tab);
+  }
+
+  // File card
+  function buildFileCard() {
+    const card = document.createElement('div');
+    card.className = 'filter-card';
+    card.appendChild(cardHeader('Files', FILTER_MODEL.File.kind, state.files.length));
+
+    const body = document.createElement('div');
+    body.className = 'filter-card-body file-picker';
+
+    initExpandedSpaces(state.spaces, state.expandedFileSpaces);
+
+    // Selected folders grouped by space
+    const selSection = document.createElement('div');
+    selSection.innerHTML = '<div class="file-picker-section-label">Selected folders</div>';
+    const selBox = document.createElement('div');
+    selBox.className = 'selected-by-space';
+
+    if (!state.files.length) {
+      selBox.innerHTML = '<div class="selected-empty">No folders selected — expand a space below to browse</div>';
+    } else {
+      const bySpace = {};
+      state.files.forEach(f => {
+        if (!bySpace[f.space]) bySpace[f.space] = [];
+        bySpace[f.space].push(f);
+      });
+      Object.entries(bySpace).forEach(([space, files]) => {
+        const group = document.createElement('div');
+        group.className = 'selected-space-group';
+        const hdr = document.createElement('div');
+        hdr.className = 'selected-space-header';
+        hdr.innerHTML = `<span>${space} (${files.length})</span>`;
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'clear-space';
+        clearBtn.textContent = 'Clear';
+        clearBtn.addEventListener('click', () => {
+          state.files = state.files.filter(f => f.space !== space);
+          updateFiltersPanel();
+        });
+        hdr.appendChild(clearBtn);
+        group.appendChild(hdr);
+
+        const tags = document.createElement('div');
+        tags.className = 'selected-space-tags';
+        files.forEach(f => {
+          const sub = f.includeSubfolders ? ' + sub' : '';
+          tags.appendChild(makeTag(`📁 ${f.label}${sub}`, '', () => {
+            const n = findNodeInSpace(f.space, f.id) || { id: f.id };
+            removeFolderSelection(n, f.space);
+            updateFiltersPanel();
+          }));
+        });
+        group.appendChild(tags);
+        selBox.appendChild(group);
+      });
+    }
+    selSection.appendChild(selBox);
+    body.appendChild(selSection);
+
+    // Browse folders per space (accordion + scroll panel)
+    const treeSection = document.createElement('div');
+    treeSection.innerHTML = '<div class="file-picker-section-label">Browse folders by space</div>';
+    const treePanel = document.createElement('div');
+    treePanel.className = 'folder-tree-panel';
+
+    const globalSearchBox = document.createElement('div');
+    globalSearchBox.className = 'search-box panel-search';
+    const globalInput = document.createElement('input');
+    globalInput.type = 'text';
+    globalInput.placeholder = 'Search all folders...';
+    globalInput.value = state.fileGlobalSearch;
+    globalSearchBox.appendChild(globalInput);
+    globalSearchBox.insertAdjacentHTML('beforeend', '<span style="color:#999">&#128269;</span>');
+    treePanel.appendChild(globalSearchBox);
+
+    const accordionWrap = document.createElement('div');
+    accordionWrap.style.padding = '0 8px 8px';
+
+    function spaceHasFolderMatch(space, globalFilter, localFilter) {
+      const nodes = FOLDER_TREE[space];
+      if (!nodes) return false;
+      if (!globalFilter && !localFilter) return true;
+      const combined = [globalFilter, localFilter].filter(Boolean).join(' ');
+      return nodes.some(n => nodeMatchesFilter(n, combined));
+    }
+
+    function renderFileAccordions() {
+      const globalFilter = state.fileGlobalSearch.toLowerCase().trim();
+      accordionWrap.innerHTML = '';
+      let anySpaceVisible = false;
+
+      state.spaces.forEach(space => {
+        const nodes = FOLDER_TREE[space];
+        if (!nodes) return;
+        const localFilter = (state.fileSearch[space] || '').toLowerCase().trim();
+        const combinedFilter = [globalFilter, localFilter].filter(Boolean).join(' ');
+
+        if (globalFilter && !spaceHasFolderMatch(space, globalFilter, localFilter)) return;
+        anySpaceVisible = true;
+
+        const expanded = globalFilter
+          ? true
+          : state.expandedFileSpaces[space];
+        const selCount = state.files.filter(f => f.space === space).length;
+
+        const block = document.createElement('div');
+        block.className = 'accordion-block';
+
+        block.appendChild(buildAccordionHeader(space, expanded, selCount, () => {
+          state.expandedFileSpaces[space] = !state.expandedFileSpaces[space];
+          updateFiltersPanel();
+        }));
+
+        const accBody = document.createElement('div');
+        accBody.className = 'accordion-body' + (expanded ? '' : ' collapsed');
+
+        const search = document.createElement('div');
+        search.className = 'search-box';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Search folders in this space...';
+        input.value = state.fileSearch[space] || '';
+        search.appendChild(input);
+        search.insertAdjacentHTML('beforeend', '<span style="color:#999">&#128269;</span>');
+
+        const treeRoot = document.createElement('div');
+
+        function renderTree() {
+          state.fileSearch[space] = input.value;
+          const g = state.fileGlobalSearch.toLowerCase().trim();
+          const l = input.value.toLowerCase().trim();
+          const filter = [g, l].filter(Boolean).join(' ');
+          treeRoot.innerHTML = '';
+          let anyVisible = false;
+          nodes.forEach(n => {
+            const el = folderNode(n, space, filter);
+            if (!filter || !el.classList.contains('match-hidden')) anyVisible = true;
+            treeRoot.appendChild(el);
+          });
+          if (filter && !anyVisible) {
+            treeRoot.innerHTML = '<div class="tree-no-results">No folders match your search</div>';
+          }
+        }
+
+        input.addEventListener('input', debounce(renderTree, 200));
+
+        renderTree();
+
+        accBody.appendChild(search);
+        accBody.appendChild(treeRoot);
+        block.appendChild(accBody);
+        accordionWrap.appendChild(block);
+      });
+
+      if (!anySpaceVisible) {
+        accordionWrap.innerHTML = '<div class="tree-no-results">No folders match your search</div>';
+      }
+    }
+
+    globalInput.addEventListener('input', debounce(e => {
+      state.fileGlobalSearch = e.target.value;
+      renderFileAccordions();
+    }, 200));
+
+    renderFileAccordions();
+    treePanel.appendChild(accordionWrap);
+
+    treeSection.appendChild(treePanel);
+    body.appendChild(treeSection);
+    card.appendChild(body);
+    return card;
+  }
+
+  function treeNodeKey(space, id) {
+    return `${space}|${id}`;
+  }
+
+  function getDescendantNodes(node) {
+    const result = [];
+    (node.children || []).forEach(child => {
+      result.push(child);
+      result.push(...getDescendantNodes(child));
+    });
+    return result;
+  }
+
+  function findNodeInSpace(space, nodeId) {
+    function search(nodes) {
+      for (const n of nodes) {
+        if (n.id === nodeId) return n;
+        if (n.children) {
+          const found = search(n.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+    return search(FOLDER_TREE[space] || []);
+  }
+
+  function setIncludeSubfolders(node, space, include) {
+    const f = state.files.find(x => x.id === node.id && x.space === space);
+    if (!f) return;
+    f.includeSubfolders = include;
+    const treeNode = findNodeInSpace(space, node.id);
+    if (!treeNode) return;
+
+    const descendants = getDescendantNodes(treeNode);
+    if (include) {
+      state.expandedTreeNodes[treeNodeKey(space, node.id)] = true;
+      descendants.forEach(d => {
+        if (!state.files.some(x => x.id === d.id && x.space === space)) {
+          state.files.push({ id: d.id, label: d.label, space, includeSubfolders: false });
+        }
+      });
+    } else {
+      const descendantIds = new Set(descendants.map(d => d.id));
+      state.files = state.files.filter(x => x.space !== space || x.id === node.id || !descendantIds.has(x.id));
+    }
+  }
+
+  function removeFolderSelection(node, space) {
+    const treeNode = findNodeInSpace(space, node.id) || node;
+    const toRemove = new Set([node.id, ...getDescendantNodes(treeNode).map(d => d.id)]);
+    state.files = state.files.filter(f => !(f.space === space && toRemove.has(f.id)));
+  }
+
+  function nodeMatchesFilter(node, filter) {
+    if (!filter) return true;
+    if (node.label.toLowerCase().includes(filter)) return true;
+    return (node.children || []).some(c => nodeMatchesFilter(c, filter));
+  }
+
+  function folderNode(node, space, filter) {
+    const wrap = document.createElement('div');
+    const hasChildren = !!(node.children && node.children.length);
+    const matches = nodeMatchesFilter(node, filter);
+    wrap.className = 'tree-node' + (matches ? ' has-match' : ' match-hidden');
+
+    const sel = state.files.find(f => f.id === node.id && f.space === space);
+    const checked = !!sel;
+    const tKey = treeNodeKey(space, node.id);
+    const nodeExpanded = filter ? true : (state.expandedTreeNodes[tKey] ?? node.id.endsWith('-root'));
+
+    const row = document.createElement('div');
+    row.className = 'tree-node-row';
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'tree-toggle' + (hasChildren ? '' : ' placeholder');
+    toggle.innerHTML = hasChildren ? (nodeExpanded ? '&#9660;' : '&#9654;') : '';
+    if (hasChildren) {
+      toggle.addEventListener('click', e => {
+        e.stopPropagation();
+        state.expandedTreeNodes[tKey] = !nodeExpanded;
+        updateFiltersPanel();
+      });
+    }
+
+    const label = document.createElement('label');
+    label.className = checked ? 'checked' : '';
+    label.innerHTML = `<input type="checkbox" ${checked ? 'checked' : ''} /> <span class="folder-name">${node.label}</span>`;
+
+    label.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) {
+        if (!sel) state.files.push({ id: node.id, label: node.label, space, includeSubfolders: false });
+      } else {
+        removeFolderSelection(node, space);
+      }
+      updateFiltersPanel();
+    });
+
+    row.appendChild(toggle);
+    row.appendChild(label);
+    wrap.appendChild(row);
+
+    const subOpt = document.createElement('div');
+    subOpt.className = 'subfolder-opt' + (checked ? ' show' : '');
+    const subId = `sub-${node.id}-${space.replace(/\s/g,'')}`;
+    subOpt.innerHTML = `<input type="checkbox" id="${subId}" ${sel?.includeSubfolders ? 'checked' : ''} />
+      <label for="${subId}">Include subfolders</label>`;
+    subOpt.querySelector('input').addEventListener('change', e => {
+      setIncludeSubfolders(node, space, e.target.checked);
+      updateFiltersPanel();
+    });
+    wrap.appendChild(subOpt);
+
+    if (hasChildren) {
+      const ch = document.createElement('div');
+      ch.className = 'tree-children';
+      ch.style.display = nodeExpanded ? 'block' : 'none';
+      node.children.forEach(c => ch.appendChild(folderNode(c, space, filter)));
+      wrap.appendChild(ch);
+    }
+    return wrap;
+  }
+
+  // Forum card
+  function buildForumCard() {
+    const card = document.createElement('div');
+    card.className = 'filter-card';
+    card.appendChild(cardHeader('Forums', FILTER_MODEL.Forum.kind, state.forums.length));
+
+    const body = document.createElement('div');
+    body.className = 'filter-card-body file-picker';
+
+    initExpandedSpaces(state.spaces, state.expandedForumSpaces);
+
+    // Selected forums grouped by space
+    const selSection = document.createElement('div');
+    selSection.innerHTML = '<div class="file-picker-section-label">Selected forums</div>';
+    const selBox = document.createElement('div');
+    selBox.className = 'selected-by-space';
+
+    if (!state.forums.length) {
+      selBox.innerHTML = '<div class="selected-empty">No forums selected — expand a space below to browse</div>';
+    } else {
+      const bySpace = {};
+      state.forums.forEach(f => {
+        if (!bySpace[f.space]) bySpace[f.space] = [];
+        bySpace[f.space].push(f);
+      });
+      Object.entries(bySpace).forEach(([space, forums]) => {
+        const group = document.createElement('div');
+        group.className = 'selected-space-group';
+        const hdr = document.createElement('div');
+        hdr.className = 'selected-space-header';
+        hdr.innerHTML = `<span>${space} (${forums.length})</span>`;
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'clear-space';
+        clearBtn.textContent = 'Clear';
+        clearBtn.addEventListener('click', () => {
+          state.forums = state.forums.filter(f => f.space !== space);
+          updateFiltersPanel();
+        });
+        hdr.appendChild(clearBtn);
+        group.appendChild(hdr);
+
+        const tags = document.createElement('div');
+        tags.className = 'selected-space-tags';
+        forums.forEach(f => {
+          tags.appendChild(makeTag(f.label, '', () => {
+            state.forums = state.forums.filter(x => forumKey(x.label,x.space) !== forumKey(f.label,f.space));
+            updateFiltersPanel();
+          }));
+        });
+        group.appendChild(tags);
+        selBox.appendChild(group);
+      });
+    }
+    selSection.appendChild(selBox);
+    body.appendChild(selSection);
+
+    // Browse forums per space (accordion + scroll panel)
+    const browseSection = document.createElement('div');
+    browseSection.innerHTML = '<div class="file-picker-section-label">Browse forums by space</div>';
+    const browsePanel = document.createElement('div');
+    browsePanel.className = 'folder-tree-panel';
+
+    const globalSearchBox = document.createElement('div');
+    globalSearchBox.className = 'search-box panel-search';
+    const globalInput = document.createElement('input');
+    globalInput.type = 'text';
+    globalInput.placeholder = 'Search all forums...';
+    globalInput.value = state.forumGlobalSearch;
+    globalSearchBox.appendChild(globalInput);
+    globalSearchBox.insertAdjacentHTML('beforeend', '<span style="color:#999">&#128269;</span>');
+    browsePanel.appendChild(globalSearchBox);
+
+    const accordionWrap = document.createElement('div');
+    accordionWrap.style.padding = '0 8px 8px';
+
+    function forumMatchesFilter(forum, globalFilter, localFilter) {
+      const name = forum.toLowerCase();
+      if (globalFilter && !name.includes(globalFilter)) return false;
+      if (localFilter && !name.includes(localFilter)) return false;
+      return true;
+    }
+
+    function spaceHasForumMatch(space, globalFilter, localFilter) {
+      const forums = FORUM_DATA[space] || [];
+      if (!globalFilter && !localFilter) return true;
+      return forums.some(f => forumMatchesFilter(f, globalFilter, localFilter));
+    }
+
+    function renderForumAccordions() {
+      const globalFilter = state.forumGlobalSearch.toLowerCase().trim();
+      accordionWrap.innerHTML = '';
+      let anySpaceVisible = false;
+
+      state.spaces.forEach(space => {
+        const forums = FORUM_DATA[space];
+        if (!forums) return;
+        const localFilter = (state.forumSearch[space] || '').toLowerCase().trim();
+
+        if (globalFilter && !spaceHasForumMatch(space, globalFilter, localFilter)) return;
+        anySpaceVisible = true;
+
+        const expanded = globalFilter ? true : state.expandedForumSpaces[space];
+        const selCount = state.forums.filter(f => f.space === space).length;
+
+        const block = document.createElement('div');
+        block.className = 'accordion-block';
+
+        block.appendChild(buildAccordionHeader(space, expanded, selCount, () => {
+          state.expandedForumSpaces[space] = !state.expandedForumSpaces[space];
+          updateFiltersPanel();
+        }));
+
+        const accBody = document.createElement('div');
+        accBody.className = 'accordion-body' + (expanded ? '' : ' collapsed');
+
+        const search = document.createElement('div');
+        search.className = 'search-box';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Search forums in this space...';
+        input.value = state.forumSearch[space] || '';
+        search.appendChild(input);
+        search.insertAdjacentHTML('beforeend', '<span style="color:#999">&#128269;</span>');
+
+        const list = document.createElement('div');
+        list.className = 'forum-checklist';
+
+        function renderList() {
+          state.forumSearch[space] = input.value;
+          const g = state.forumGlobalSearch.toLowerCase().trim();
+          const l = input.value.toLowerCase().trim();
+          list.innerHTML = '';
+          let anyVisible = false;
+
+          forums.forEach(forum => {
+            if (!forumMatchesFilter(forum, g, l)) return;
+            anyVisible = true;
+            const item = document.createElement('div');
+            const sel = state.forums.some(f => f.label === forum && f.space === space);
+            item.className = 'forum-check' + (sel ? ' checked' : '');
+            const id = `f-${space}-${forum}`.replace(/\s/g,'');
+            item.innerHTML = `<input type="checkbox" id="${id}" ${sel ? 'checked' : ''} />
+              <label for="${id}">${forum}</label>`;
+            item.querySelector('input').addEventListener('change', e => {
+              const k = forumKey(forum, space);
+              if (e.target.checked) {
+                if (!sel) state.forums.push({ id: k, label: forum, space });
+              } else {
+                state.forums = state.forums.filter(f => forumKey(f.label,f.space) !== k);
+              }
+              updateFiltersPanel();
+            });
+            list.appendChild(item);
+          });
+
+          if (!anyVisible) {
+            list.innerHTML = '<div class="tree-no-results">No forums match your search</div>';
+          }
+        }
+
+        input.addEventListener('input', debounce(renderList, 200));
+
+        renderList();
+
+        accBody.appendChild(search);
+        accBody.appendChild(list);
+        block.appendChild(accBody);
+        accordionWrap.appendChild(block);
+      });
+
+      if (!anySpaceVisible) {
+        accordionWrap.innerHTML = '<div class="tree-no-results">No forums match your search</div>';
+      }
+    }
+
+    globalInput.addEventListener('input', debounce(e => {
+      state.forumGlobalSearch = e.target.value;
+      renderForumAccordions();
+    }, 200));
+
+    renderForumAccordions();
+    browsePanel.appendChild(accordionWrap);
+    browseSection.appendChild(browsePanel);
+    body.appendChild(browseSection);
+
+    card.appendChild(body);
+    return card;
+  }
+
+  // ─── Tabs ───────────────────────────────────────────────────────────────────
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ─── Save / reset ───────────────────────────────────────────────────────────
+
+  function collectConfig() {
+    return {
+      title: document.getElementById('title').value,
+      widgetSubType: document.getElementById('widget-subtype').value,
+      contentTypes: [...state.contentTypes],
+      spaces: [...state.spaces],
+      setSpaceFromPage: document.getElementById('auto-space').checked,
+      secondLevelFilters: state.contentTypes.length ? {
+        wiki: { parentPages: [...state.wikiParents] },
+        categories: [...state.categories],
+        files: [...state.files],
+        forums: [...state.forums]
+      } : null,
+      authors: [...state.authors],
+      loggedInUser: document.getElementById('logged-in-user').checked,
+      tags: [...state.tags],
+      tagMatch: document.querySelector('input[name="tag-match"]:checked')?.value,
+      featured: document.getElementById('featured').value,
+      requiredReading: document.getElementById('required-reading').value,
+      totalItems: parseInt(document.getElementById('total-items').value, 10),
+      sortBy: document.getElementById('sort-field').value,
+      sortOrder: document.getElementById('sort-order').value,
+      publishedSince: {
+        number: document.getElementById('since-number').value,
+        period: document.getElementById('since-period').value
+      },
+      customDateRange: document.getElementById('custom-date-range').checked,
+      saveForElsewhere: document.getElementById('save-elsewhere').checked
+    };
+  }
+
+  function saveWidget() {
+    document.getElementById('config-output').style.display = 'block';
+    document.getElementById('config-json').textContent = JSON.stringify(collectConfig(), null, 2);
+    document.getElementById('config-output').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function applyPreset(preset) {
+    state.contentTypes = [...(preset.contentTypes || [])];
+    state.spaces = [...(preset.spaces || [])];
+    state.wikiParents = (preset.wikiParents || []).map(w => ({ ...w }));
+    state.categories = (preset.categories || []).map(c => ({ ...c }));
+    state.files = (preset.files || []).map(f => ({ ...f }));
+    state.forums = (preset.forums || []).map(f => ({ ...f }));
+    state.authors = [];
+    state.tags = [];
+    state.categorySearch = '';
+    state.wikiSearch = {};
+    state.spaceSearch = '';
+    state.spaceSearchOpen = false;
+    state.fileSearch = {};
+    state.fileGlobalSearch = '';
+    state.forumSearch = {};
+    state.forumGlobalSearch = '';
+    state.expandedFileSpaces = {};
+    state.expandedTreeNodes = {};
+    state.expandedWikiSpaces = {};
+    state.expandedForumSpaces = {};
+    state.showAllSelectedTags = {};
+    const spaceSearchInput = document.getElementById('space-search');
+    if (spaceSearchInput) spaceSearchInput.value = '';
+    renderChips();
+    renderSpacePicker();
+    updateFiltersPanel();
+  }
+
+  function resetForm() {
+    document.getElementById('title').value = 'Content List';
+    ['auto-space','custom-date-range','save-elsewhere','logged-in-user'].forEach(id => {
+      document.getElementById(id).checked = false;
+    });
+    document.getElementById('total-items').value = '4';
+    document.getElementById('config-output').style.display = 'none';
+    applyPreset({ contentTypes: [], spaces: [] });
+  }
+
+  document.addEventListener('keydown', e => {
+    if (!e.altKey) return;
+    if (e.key === '1') applyPreset({
+      contentTypes: ['Wiki'], spaces: ['Top level community','Human Resources'],
+      wikiParents: [
+        { space:'Top level community', page:'Community and Charity' },
+        { space:'Top level community', page:'Company Handbook' }
+      ]
+    });
+    if (e.key === '2') applyPreset({
+      contentTypes: ['Article','Blog','File'], spaces: ['Top level community','Employee Onboarding'],
+      categories: [{ contentType:'Article', space:'Top level community', category:'Press Releases', group:'News' }],
+      files: [{ id:'tlc-homepage', label:'Homepage Design', space:'Top level community', includeSubfolders: false }]
+    });
+    if (e.key === '3') applyPreset({
+      contentTypes: ['Forum'], spaces: ['Top level community'],
+      forums: [{ id:'General Discussion|Top level community', label:'General Discussion', space:'Top level community' }]
+    });
+    if (e.key === '4') applyPreset({
+      contentTypes: ['File','Wiki'],
+      spaces: ['Top level community','Human Resources','Engineering','Marketing','Sales','Finance','IT Support','Operations'],
+      files: [
+        { id:'tlc-0', label:'Human Resources', space:'Top level community', includeSubfolders: true },
+        { id:'eng-2', label:'Release Notes', space:'Engineering', includeSubfolders: false }
+      ]
+    });
+  });
+
+  const spaceSearchInput = document.getElementById('space-search');
+
+  spaceSearchInput.addEventListener('input', debounce(e => {
+    state.spaceSearch = e.target.value;
+    state.spaceSearchOpen = true;
+    renderSpaceSearchResults();
+  }, 150));
+
+  spaceSearchInput.addEventListener('focus', () => {
+    state.spaceSearchOpen = true;
+    renderSpaceSearchResults();
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.space-search-wrap')) {
+      state.spaceSearchOpen = false;
+      renderSpaceSearchResults();
+    }
+  });
+
+  document.getElementById('space-select-all').addEventListener('click', () => {
+    getSpaceSearchMatches().forEach(s => {
+      if (!state.spaces.includes(s)) state.spaces.push(s);
+    });
+    onSpacesChange();
+  });
+
+  document.getElementById('space-clear-all').addEventListener('click', () => {
+    const q = state.spaceSearch.toLowerCase().trim();
+    if (q) {
+      state.spaces = state.spaces.filter(s => !s.toLowerCase().includes(q));
+    } else {
+      state.spaces = [];
+    }
+    onSpacesChange();
+  });
+
+  // Start empty – filters hidden until content types are selected
+  renderChips();
+  renderSpacePicker();
+  updateFiltersPanel();
+</script>
+
+</body>
+</html>
